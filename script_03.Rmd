@@ -40,7 +40,10 @@ sep_old <-
          title = course_title,
          name = course_name,
          department = course_department) %>% 
-  filter(u_grad > 10)
+  group_by(id, title, name, department) %>%
+#  filter(u_grad > 10) %>%
+  summarize(u_grad = sum(u_grad), .groups = "drop") 
+  
 
 # But this is not correct! Look for Gov 50: Data. What do you see? What can you
 # do to clean it up?
@@ -53,7 +56,24 @@ sep_old <-
 
 **Prompt:** Read in and clean the new data, creating an object called `sep_new`. 
 
+```{r}
 
+sep_new <- 
+  read_excel("new_data/class_enrollment_summary_by_term_9-21-2020.xlsx", 
+             skip = 3) %>% 
+  clean_names() %>% 
+  filter(! is.na(course_title)) %>% 
+  select(-grad, -non_degree, -x_reg, -vus, -employee, 
+         -withdraw, -total, -instructor_full_name, -course_section_code) %>%
+  rename(id = course_id,
+         title = course_title,
+         name = course_name,
+         department = course_department) %>% 
+  group_by(id, title, name, department) %>%
+ # filter(u_grad > 10) %>%
+  summarize(u_grad = sum(u_grad), .groups = "drop")
+
+```
 
 ### Scene 2
 
@@ -61,15 +81,38 @@ sep_old <-
 
 Before we start on the model, Wisdom suggests we should:
 
+We need to clearly define our measurements, and our goals in the data: what are we trying to find, and how are we going to measure it? 
+We need to make assumptions that avoid the infinite preceptor, limiting the amount of missing data we face with the data table (enrollment on September 1st vs September 21st). For example, we made an assumption regarding what class sizes were important to us, filtering to only select data greater than 10; we realized the arbitrary nature of this, and decided that removing the filter would be advantageous toward getting a better understanding of all Harvard classes. 
+We need to identify the goals of those people who are not data scientists, and how we should shape our data to reflect their goals. 
+
 
 After we have a model, Temperance suggests we should:
 
-
+Temperance suggests that we understand the limits of our data and our modeling capacity, acknowledging uncertainty in our calculations and the potential for incorrectly estimating a value.
+We cannot make causal assumptions or assume that the same treatment effect applies consistently across all individuals.
+We need to ensure that our data is valid; we should be careful to avoid various biases, including selection biases.
+We need to avoid selection bias in the assignment and selection mechanisms so as to avoid confounding the data.
+We need to make sure our code is correct, eliminating some level of human error in order to best promote internal validity. 
 
 ### Scene 3
 
 **Prompt:** Which classes had the biggest increases and decreases in undergraduate enrollments between September 1 and today? Make a graphic that shows the 5 biggest increases and decreases. Make it look nice.
 
+```{r, echo = FALSE}
+
+sep_diff <- inner_join(sep_new, sep_old, by = "id", suffix = c(".new", ".old")) %>%
+  filter(u_grad.new >= 10 & u_grad.old >= 10) %>%
+  mutate(diff = u_grad.new - u_grad.old)
+
+largediff <- sep_diff %>%
+  arrange(desc(diff)) %>%
+  slice(1:5)
+
+smalldiff <- sep_diff %>%
+  arrange(diff) %>%
+  slice(1:5)
+
+``` 
 
 
 
